@@ -6,76 +6,223 @@ A **rigorous framework** for analyzing neural-network loss-landscape geometry an
 
 ## Overview
 
-- **Goal** - Derive theoretical insights about loss-landscape curvature, implement efficient probing methods, and empirically validate how geometric properties affect training dynamics and generalization.
-- **Key Contributions**
-  - Model definitions (MLP & ResNet) with a unified API.
-  - Training utilities that log accuracy and loss.
-  - Landscape analysis tools:
-    - Hessian eigen-value computation.
-    - 1-D weight-interpolation plots.
-    - 2-D loss-contour visualizations.
-  - End-to-end experiment script (`experiments/train_and_analyze.py`).
+This repository implements a complete pipeline for **loss-landscape geometry**, **curvature analysis**, and **optimization-dynamics** exploration for neural networks.
+
+It provides:
+
+* Model definitions: **MLP**, **ResNet20** (`src/models/models.py`)
+* Training utilities: SGD training, evaluation, checkpointing (`src/training/trainer.py`)
+* Landscape analysis tools:
+
+  * **Hessian eigenvalue** computation (power iteration)
+  * **1-D weight interpolation** plots (line-search loss curves)
+  * **2-D contour maps** of local loss geometry
+* A full experiment driver:
+  **`experiments/train_and_analyze.py`**
+* A standalone **dataset builder** script:
+  **`data_preparation.py`** (located in project root)
 
 ---
 
 ## Installation
 
 ```bash
-
-# Install Python dependencies
 python -m pip install -r requirements.txt
 ```
 
-The environment contains **PyTorch**, **torchvision**, **matplotlib**, and other required packages.
+The repository uses **PyTorch**, **torchvision**, **matplotlib**, and a few utility libraries.
 
 ---
 
-## Running the Experiment
+# Running the Experiment
 
-The default configuration trains an MLP on a synthetic dataset so it runs fully offline:
+## Default offline experiment (synthetic data + MLP)
 
 ```bash
 python experiments/train_and_analyze.py --dataset synthetic --model mlp
 ```
 
-Key optional flags:
-- `--dataset cifar10 --data_root data --download_data` to reuse the packaged CIFAR-10 cache (no download) or request a download when allowed.
-- `--model resnet20` to switch architectures.
-- `--save_dir <path>` to redirect checkpoints/figures (defaults to `experiments/outputs`).
-- `--analysis_samples N` to control how many training samples feed the Hessian/interpolation probes.
+## Use CIFAR-10 (cache or download)
 
-Every run will:
-1. Prepare the requested dataset.
-2. Build the selected model.
-3. Train for the specified epochs while logging accuracy.
-4. Compute the top Hessian eigenvalue and save `hessian.png`.
-5. Generate `interp_1d.png` and `contour_2d.png` visualizing the local landscape.
-6. Save the trained checkpoint as `model.pth` inside the same output directory.
+If the CIFAR-10 cache already exists under `data/`, nothing will be downloaded:
+
+```bash
+python experiments/train_and_analyze.py --dataset cifar10 --data_root data
+```
+
+If you want CIFAR-10 downloaded:
+
+```bash
+python experiments/train_and_analyze.py --dataset cifar10 --data_root data --download_data
+```
+
+### Key flags
+
+* `--model resnet20` – switch to ResNet-20
+* `--save_dir <path>` – where all outputs are stored (default: `experiments/outputs`)
+* `--analysis_samples N` – how many samples are used for Hessian/interpolation analysis
+* `--epochs N` – number of training epochs
+* `--lr <value>` – SGD learning rate
 
 ---
 
-## Repository Structure
+# Pipeline Stages
+
+Every run executes the following:
+
+---
+
+### **1. Data Preparation**
+
+Dataset creation is now entirely handled by the new top-level script:
+
+```
+data_preparation.py
+```
+
+This module contains:
+
+* CIFAR-10 loader with caching logic
+* Synthetic dataset builder
+* Analysis subset builder
+* Normalization transforms
+* Train/test dataloaders
+
+`train_and_analyze.py` **imports all dataset loaders from this file.**
+
+---
+
+### **2. Model Construction**
+
+`src/models/models.py` provides:
+
+* `MLP`
+* `ResNet20`
+
+Both comply with a unified API so that the landscape analysis pipeline works identically across architectures.
+
+---
+
+### **3. Training**
+
+`src/training/trainer.py` implements:
+
+* SGD + momentum
+* Accuracy and loss logging
+* Best-checkpoint saving (`model.pth`)
+* CUDA-aware training loop
+
+---
+
+### **4. Landscape Geometry Analysis**
+
+Computed using utilities in `src/landscape/`:
+
+#### Hessian Eigenvalue
+
+Power iteration computes the **top curvature mode**.
+
+#### 1-D Loss Interpolation
+
+Moves model weights along a random normalized direction.
+Produces `interp_1d.png`.
+
+#### 2-D Contour Visualization
+
+Generates a grid of loss values over two random directions.
+Produces `contour_2d.png`.
+
+---
+
+### **5. Artifact Export**
+
+All results are saved to `--save_dir`, typically:
+
+```
+experiments/outputs/
+├── model.pth
+├── hessian.png
+├── interp_1d.png
+└── contour_2d.png
+```
+
+---
+
+# Repository Structure (Updated)
 
 ```
 landscape_geometry_optimization/
+├─ data_preparation.py        # NEW: All dataset logic moved here
+│
+├─ experiments/
+│  ├─ train_and_analyze.py    # Uses data_preparation.py for all datasets
+│  └─ outputs/                # Saved results
+│
 ├─ src/
-│  ├─ models/        # MLP & ResNet definitions
-│  ├─ training/      # Trainer & evaluation utilities
-│  └─ landscape/     # Visualization & metric (Hessian) code
-├─ experiments/       # End-to-end script and output folder
-├─ requirements.txt   # Python dependencies
-├─ walkthrough.md     # Quick usage guide (generated earlier)
-└─ README.md          # **You are reading it!**
+│  ├─ models/
+│  ├─ training/
+│  └─ landscape/
+│
+├─ requirements.txt
+├─ README.md
+└─ walkthrough.md
 ```
 
 ---
 
+# Extending the Framework
 
-## Further Reading
+### Add a new model
 
-- `theory.md` - Formal definitions of loss-landscape geometry and a short derivation linking curvature to SGD dynamics.
+Add a class in:
 
+```
+src/models/models.py
+```
+
+Then register it in the CLI (`train_and_analyze.py`).
 
 ---
 
-*Feel free to adapt the script parameters (learning rate, epochs, model) to explore different architectures and observe how the landscape changes.*
+### Add a new dataset
+
+Add its loader to:
+
+```
+data_preparation.py
+```
+
+Expose it through the `--dataset` flag.
+
+---
+
+### Add new landscape metrics
+
+Extend:
+
+```
+src/landscape/metrics.py
+```
+
+and use them in the experiment driver.
+
+---
+
+# Verification
+
+A full integration test with:
+
+```bash
+python experiments/train_and_analyze.py --dataset synthetic --model mlp
+```
+
+produces:
+
+* `model.pth`
+* `hessian.png`
+* `interp_1d.png`
+* `contour_2d.png`
+
+confirming that the updated two-file split (`train_and_analyze.py` + `data_preparation.py`) works cleanly.
+
+
