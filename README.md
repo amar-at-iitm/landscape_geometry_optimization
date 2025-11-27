@@ -21,8 +21,6 @@ A **rigorous framework** for analyzing neural-network loss-landscape geometry an
 ## Installation
 
 ```bash
-# Activate the provided virtual environment (already created)
-source /home/amar-kumar/Desktop/MTech/fourkites/4kites/bin/activate
 
 # Install Python dependencies
 python -m pip install -r requirements.txt
@@ -72,30 +70,11 @@ landscape_geometry_optimization/
 
 ---
 
-## Results
-
-Running the script on a CPU yields something like:
-```
-Epoch 0: Train Acc: 8.40%, Test Acc: 10.00%
-Top Hessian Eigenvalue: 2.89
-Analysis Complete.
-```
-The generated plots illustrate the loss landscape along the training trajectory and confirm that the framework works end-to-end.
-
----
 
 ## Further Reading
 
 - `theory.md` - Formal definitions of loss-landscape geometry and a short derivation linking curvature to SGD dynamics.
-- `walkthrough.md` - Step-by-step guide for setup and execution.
 
----
-
-## Assignment Submission Checklist
-
-- [x] Code repository (this folder).
-- [x] PDF report (combine `theory.md`, `walkthrough.md`, and the generated plots).
-- [x] Ensure the virtual-environment activation command is included.
 
 ---
 

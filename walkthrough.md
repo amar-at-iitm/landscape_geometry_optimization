@@ -10,10 +10,9 @@ This repository implements a **loss landscape geometry and optimization dynamics
 
 ## Setup
 
-```bash
-# Activate the virtual environment (already created)
-source /home/amar-kumar/Desktop/MTech/fourkites/4kites/bin/activate
+**It is better to create and activate a virtual python environment.
 
+```bash
 # Install required packages (torch, torchvision, etc.)
 python -m pip install -r requirements.txt
 ```
